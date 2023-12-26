@@ -7,11 +7,15 @@ RUN apt-get update -y && \
         libzip-dev \
         unzip \
         zip \
-        zlib1g-dev
+        zlib1g-dev \
+        libcurl4-openssl-dev \
+        pkg-config \
+        libssl-dev
 
 # Instala las extensiones de PHP necesarias
-RUN pecl install mongodb xdebug \
-    && docker-php-ext-enable mongodb xdebug
+RUN pecl install mongodb \
+    && docker-php-ext-enable mongodb \
+    && docker-php-ext-install pdo_mysql
 
 # Instala Composer
 COPY --from=composer:2.6.6 /usr/bin/composer /usr/local/bin/composer

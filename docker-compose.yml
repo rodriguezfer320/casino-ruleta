@@ -2,7 +2,7 @@ version: '3.8'
 services:
   laravel:
     build: .
-    image: crud
+    image: casino-ruleta
     container_name: laravel
     ports:
       - '80:80'
@@ -13,22 +13,25 @@ services:
     networks:
       - default
     depends_on:
-      - mongodb
-  mongodb:
-    image: 'mongo:4.4'
-    container_name: mongodb
+      - mysql
+  mysql:
+    image: 'mysql/mysql-server:8.0'
+    container_name: mysql
     ports:
-      - '27017:27017'
+      - '3306:3306'
     environment:
-      MONGO_INITDB_ROOT_USERNAME: '${DB_USERNAME}'
-      MONGO_INITDB_ROOT_PASSWORD: '${DB_PASSWORD}'
-      MONGO_INITDB_DATABASE: '${DB_DATABASE}'
+        MYSQL_DATABASE: '${DB_DATABASE}'
+        MYSQL_USER: '${DB_USERNAME}'
+        MYSQL_PASSWORD: '${DB_PASSWORD}'
+        TZ: 'America/Bogota'
     volumes:
-      - 'mongodb:/data/db'
+        - 'mysql:/var/lib/mysql'
+    networks:
+        - default
 networks:
   default:
     driver: bridge
 volumes:
   vendor:
-  mongodb:
+  mysql:
     driver: local

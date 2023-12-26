@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\UserController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,5 +16,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    $users = [];User::paginate(3);
+
+    return view('casino', compact('users'));
+})->name('casino');
+
+Route::resource('users', UserController::class)->parameters(['users' => 'id']);
