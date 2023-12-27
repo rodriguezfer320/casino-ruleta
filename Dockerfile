@@ -13,9 +13,7 @@ RUN apt-get update -y && \
         libssl-dev
 
 # Instala las extensiones de PHP necesarias
-RUN pecl install mongodb \
-    && docker-php-ext-enable mongodb \
-    && docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql
 
 # Instala Composer
 COPY --from=composer:2.6.6 /usr/bin/composer /usr/local/bin/composer

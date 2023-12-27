@@ -13,7 +13,6 @@ class UserController extends Controller
     public function index()
     {
         $users = User::paginate(10);
-
         return view('show_users', compact('users'));
     }
 
@@ -39,16 +38,7 @@ class UserController extends Controller
         $user->genero = $request->genero;
         $user->cash = $request->cash ?? 10000;
         $user->save();
-
-        return redirect()->route('users.create')->with('success', 'El nuevo usuario se registro con exito.');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-
+        return redirect()->route('users.create')->with('success', 'El nuevo usuario se ha registrado exitosamente.');
     }
 
     /**
@@ -57,7 +47,6 @@ class UserController extends Controller
     public function edit(string $id)
     {
         $user = User::find($id);
-
         return view('edit_user', compact('user'));
     }
 
@@ -75,8 +64,7 @@ class UserController extends Controller
         $user->genero = $request->genero;
         $user->cash = $request->cash;
         $user->update();
-
-        return redirect()->route('users.index')->with('success', 'Los datos del usuario se actualizaron con exito.');
+        return redirect()->route('users.index')->with('success', 'Los datos del usuario se actualizaron exitosamente.');
     }
 
     /**
@@ -86,7 +74,6 @@ class UserController extends Controller
     {
         $user = User::find($id);
         $user->delete();
-
-        return redirect()->route('users.index')->with('success', 'El usuario se elimino correctamente.');
+        return redirect()->route('users.index')->with('success', 'El usuario fue eliminado correctamente.');
     }
 }

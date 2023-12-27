@@ -1,7 +1,7 @@
 <?php
 
+use App\Http\Controllers\CasinoController;
 use App\Http\Controllers\UserController;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,10 +15,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    $users = [];User::paginate(3);
+// Rutas del casino
+Route::controller(CasinoController::class)
+    ->name('casino.')
+    ->group(function() {
+        Route::get('/', 'index')->name('index');
+        Route::post('/apuesta', 'storeBet')->name('storeBet');
+        Route::put('/ruleta/{round}', 'spinWheel')->name('spinWheel');
+        Route::put('/terminar/{round}', 'endRound')->name('endRound');
+    });
 
-    return view('casino', compact('users'));
-})->name('casino');
-
-Route::resource('users', UserController::class)->parameters(['users' => 'id']);
+// Rutas del crud de usuarios
+Route::resource('users', UserController::class)
+    ->parameters(['users' => 'id'])
+    ->except('show');
