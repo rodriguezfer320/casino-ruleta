@@ -27,6 +27,7 @@ CONFIGURACIÓN PARA EJECUTAR EL PROGRAMA
 7. Por último, en la consola del contenedor laravel ejecute los siguientes comandos:
 
     php artisan key:generate
+    php artisan config:cache
     php artisan migrate // La base de datos tarda un poco en iniciar, esperar hasta que esta cargue bien para ejecutarlo
                        // para saber si la base de datos ya cargo, solo basta con acceder a la pagina del proyecto en el navegador
                       // si esta no lanza una exception, quiere decir que esta lista

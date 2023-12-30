@@ -10,13 +10,14 @@
             const timeSpan = document.getElementById('time');
             const rouletteResult = document.getElementById('_roulette');
             const users = document.getElementsByClassName('users');
+            let status = false;
+            let gameInterval;
 
             betButton.addEventListener('click', function() {
                 // se deshabilita el boton
                 this.disabled = true;
-
-                console.log('Ronda: ' + roundSpan.innerText);
-                console.log('Apuestas');
+                let count = 0;
+                status = true;
 
                 for (let i = 0; i < users.length; i++) {
                     const userId = users[i].id;
@@ -24,19 +25,7 @@
                     let cash = parseInt(cashElemt.innerText.replace('$', ''));
 
                     // realiza la apuesta, si el usuario tiene dinero
-                    if (cash > 0) {
-                        let bet = cash;
-                        let color = randomcolor();
-
-                        // realiza la apuesta escogiendo un porcentaje aleatorio,
-                        // solo si el usuario tiene mas de 1000
-                        if (cash > 1000) {
-                            bet = (cash * (randomBettingPercentage(8, 15) / 100)).toFixed(0);
-                        }
-
-                        // descuenta del dinero el valor de la apuesta
-                        cash -= bet;
-                        
+                    if (cash > 0) {                        
                         // se guardan los datos de la apuesta
                         fetch('/apuesta', {
                             method: 'POST',
@@ -47,74 +36,65 @@
                             },
                             body: JSON.stringify({
                                 id_user: userId,
-                                bet,
-                                color,
                                 round: roundSpan.innerText
                             })
                         })
                         .then(response => response.json())
                         .then(data => {
-                            console.log(data);
-
                             // se añaden los datos al html
-                            cashElemt.innerText = '$' + cash;
-                            document.getElementById("bet" + userId).innerText = '$' + bet;
-                            document.getElementById("color" + userId).innerText = color;
+                            cashElemt.innerText = '$' + data.cash;
+                            document.getElementById("bet" + userId).innerText = '$' + data.bet;
+                            document.getElementById("color" + userId).innerText = data.color;
+
+                            // se activa el boton de la ruleta
+                            if (count === (users.length - 1)) {
+                                rouletteButton.disabled = false;
+                            }
+
+                            count++;
                         })
                         .catch(error => {
                             console.error('Error:', error);
                         });
                     }
                 }
-
-                // se activa el boton de la ruleta
-                rouletteButton.disabled = false;
             });
 
             rouletteButton.addEventListener('click', function() {
                 // se deshabilita el boton
                 this.disabled = true;
-                
-                let color;
+
                 const colors = {
                     'VERDE': '#00ff00',
                     'ROJO': '#ff0000',
                     'NEGRO': '#000000'
                 };
 
-                console.log('Ruleta');
-
                 const rouletteInterval = setInterval(function() {
-                    color = randomcolor();
-                    timeSpan.innerText = (parseFloat(timeSpan.innerText.replace(' sg', '')) + 0.1).toFixed(1) + ' sg';
-                    rouletteResult.style.backgroundColor = colors[color];
-                }, 100); // la ruleta se ejecuta cada 100 milisegundos
-
-                setTimeout(function() {
-                    clearInterval(rouletteInterval);
-
-                    // actualiza el color obtenido
                     fetch('/ruleta/' + roundSpan.innerText, {
                         method: 'PUT',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            color
-                        })
+                            'Accept': 'application/json'
+                        }
                     })
                     .then(response => response.json())
                     .then(data => {
-                        console.log(data);
+                        rouletteResult.style.backgroundColor = colors[data.color];
+                        timeSpan.innerText = (parseFloat(timeSpan.innerText.replace(' sg', '')) + 0.1).toFixed(1) + ' sg';
 
-                        // se habilita el boton de terminar ronda
-                        endRoundButton.disabled = false;
+                        // se habilita el boton terminar
+                        if (timeSpan.innerText === '10.0 sg') {
+                            endRoundButton.disabled = false;
+                        }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                    });
+                    });                    
+                }, 100); // la ruleta se ejecuta cada 100 milisegundos
+
+                setTimeout(function() {
+                    clearInterval(rouletteInterval);                 
                 }, 10000); // la ruleta se detiene despues de 10 segundos
             });
 
@@ -128,27 +108,10 @@
                     '#000000': 'NEGRO'
                 };
 
-                console.log('Terminar');
+                let count = 0;
 
                 for (let i = 0; i < users.length; i++) {
                     const userId = users[i].id;
-                    const cashElemt = document.getElementById('cash' + userId);
-                    const betElemt = document.getElementById('bet' + userId);
-                    const colorElemt = document.getElementById('color' + userId);
-
-                    let cash = parseInt(cashElemt.innerText.replace('$', ''));
-                    let bet = parseInt(betElemt.innerText.replace('$', ''));
-                    let result = colors[rgbToHex(rouletteResult.style.backgroundColor)];
-
-                    // se actuliza la apuesta segun el resultado de la ruleta
-                    if(colorElemt.innerText === result) {
-                        bet *= result === 'VERDE' ? 15 : 2;
-                    } else {
-                        bet = 0;
-                    }
-
-                    // se suma la apuesta al dinero del usuario
-                    cash += bet;
 
                     // se actualizan los datos de la apuesta
                     fetch('/terminar/' + roundSpan.innerText, {
@@ -159,72 +122,53 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            id_user: userId,
-                            bet
+                            id_user: userId
                         })
                     })
                     .then(response => response.json())
                     .then(data => {
-                        console.log(data);
-
                         // se añaden los datos al html
-                        cashElemt.innerText = '$' + cash;
-                        betElemt.innerText = '$0';
-                        colorElemt.innerText = 'NONE';
+                        document.getElementById('cash' + userId).innerText  = '$' + data.cash;
+                        document.getElementById('bet' + userId).innerText = '$0';
+                        document.getElementById('color' + userId).innerText = 'NONE';
+
+                        // se restablecen las configuraciones
+                        if (count === (users.length - 1)) {
+                            status = false;
+                            betButton.disabled = false;
+                            roundSpan.innerText = parseInt(roundSpan.innerText) + 1;
+                            timeSpan.innerText = '0.0 sg';
+                            rouletteResult.style.backgroundColor = '#ccc';
+                        } 
+
+                        count++;
                     })
                     .catch(error => {
                         console.error('Error:', error);
                     });
                 }
-
-                // se restablecen las configuraciones
-                betButton.disabled = false;
-                roundSpan.innerText = parseInt(roundSpan.innerText) + 1;
-                timeSpan.innerText = '0.0 sg';
-                rouletteResult.style.backgroundColor = '#ccc';
             });
 
-            function randomBettingPercentage(min, max) {
-                return Math.floor(Math.random() * (max - min + 1)) + min;
-            }
-
-            function randomcolor() {
-                const probabilityColors = {
-                    'VERDE': 0.02,
-                    'ROJO': 0.49,
-                    'NEGRO': 0.49
-                };
-                const number = Math.random();
-                let acumulativeProbability = 0;
-
-                for (const [color, probability] of Object.entries(probabilityColors)) {
-                    acumulativeProbability += probability;
-
-                    if (number <= acumulativeProbability) {
-                        return color;
-                    }
+            function automaticallyRunGame() {
+                if (!status) {
+                    gameInterval = setInterval(function() {
+                        if(!betButton.disabled) {
+                            betButton.click();
+                        } else if(!rouletteButton.disabled) {
+                            rouletteButton.click();
+                        } else if(!endRoundButton.disabled) {
+                            endRoundButton.click();
+                            clearInterval(gameInterval);
+                        }
+                    }, 100); // se ejecuta cada 100 milisegundos
                 }
             }
 
-            function rgbToHex(rgb) {
-                const match = rgb.match(/(\d+), (\d+), (\d+)/);
+            // ejecuta el juego al recargar la pagina
+            window.onload = automaticallyRunGame;
 
-                if (match) {
-                    // Convierte a valores enteros
-                    const r = parseInt(match[1], 10);
-                    const g = parseInt(match[2], 10);
-                    const b = parseInt(match[3], 10);
-
-                    // Convierte a hexadecimal
-                    const red = r.toString(16).padStart(2, '0');
-                    const green = g.toString(16).padStart(2, '0');
-                    const blue = b.toString(16).padStart(2, '0');
-
-                    return `#${red}${green}${blue}`;
-                }
-
-                return null;
-            }
+            // ejecuta el juego automaticamente cada 3 minutos
+            setInterval(automaticallyRunGame, 180000);
         });
     </script>
 @endsection

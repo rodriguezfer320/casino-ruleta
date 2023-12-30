@@ -1,19 +1,22 @@
-# Utiliza la imagen oficial de PHP 8.3 CLI como base
-FROM php:8.3-cli
+# Utiliza la imagen oficial de PHP 8.3 FPM como base
+FROM php:8.3-fpm
 
 # Librerias de Linux
 RUN apt-get update -y && \
     apt-get install -y \
-        libzip-dev \
-        unzip \
-        zip \
-        zlib1g-dev \
+        libssl-dev \
         libcurl4-openssl-dev \
-        pkg-config \
-        libssl-dev
+        zlib1g-dev \
+        libzip-dev \
+        unzip
 
-# Instala las extensiones de PHP necesarias
-RUN docker-php-ext-install pdo pdo_mysql
+# Instala las extensiones de PHP necesarias mongodb
+RUN docker-php-ext-install pdo pdo_mysql && \
+    pecl install mongodb && \
+    docker-php-ext-enable pdo_mysql mongodb
+
+# Habilita la extensión de MongoDB en el archivo de configuración de PHP
+RUN echo "extension=mongodb.so" >> /usr/local/etc/php/php.ini
 
 # Instala Composer
 COPY --from=composer:2.6.6 /usr/bin/composer /usr/local/bin/composer

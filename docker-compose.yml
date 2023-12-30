@@ -5,33 +5,52 @@ services:
     image: casino-ruleta
     container_name: laravel
     ports:
-      - '80:80'
-      - '5173:5173'
+      - 80:80
+      - 5173:5173
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor
     networks:
       - default
     depends_on:
-      - mysql
-  mysql:
-    image: 'mysql/mysql-server:8.0'
-    container_name: mysql
+      - mongodb
+  # mysql:
+  #   image: 'mysql/mysql-server:8.0'
+  #   container_name: mysql
+  #   ports:
+  #     - 3306:3306
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+  #     MYSQL_ROOT_HOST: '%'
+  #     MYSQL_DATABASE: '${DB_DATABASE}'
+  #     MYSQL_USER: '${DB_USERNAME}'
+  #     MYSQL_PASSWORD: '${DB_PASSWORD}'
+  #     TZ: 'America/Bogota'
+  #   volumes:
+  #       - mysql:/var/lib/mysql
+  #   networks:
+  #       - default
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb
     ports:
-      - '3306:3306'
+      - 27017:27017
     environment:
-        MYSQL_DATABASE: '${DB_DATABASE}'
-        MYSQL_USER: '${DB_USERNAME}'
-        MYSQL_PASSWORD: '${DB_PASSWORD}'
-        TZ: 'America/Bogota'
+      MONGO_INITDB_ROOT_USERNAME: '${DB_USERNAME}'
+      MONGO_INITDB_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MONGO_INITDB_DATABASE: '${DB_DATABASE}'
     volumes:
-        - 'mysql:/var/lib/mysql'
+      - mongodb:/data/db
     networks:
-        - default
+      - default
 networks:
   default:
     driver: bridge
 volumes:
   vendor:
   mysql:
+    driver: local
+  mongodb:
     driver: local

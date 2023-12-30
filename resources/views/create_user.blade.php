@@ -5,7 +5,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Desaparecer el mensaje después de 3 segundos (3000 milisegundos)
             setTimeout(function() {
-                document.getElementById('successMessage').style.display = 'none';
+                const successMessage = document.getElementById('successMessage');
+
+                if (successMessage) {
+                    successMessage.style.display = 'none';
+                }
             }, 3000);
         });
     </script>

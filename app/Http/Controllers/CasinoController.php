@@ -24,25 +24,39 @@ class CasinoController extends Controller
      */
     public function storeBet(Request $request)
     {
-        $user = null;
+        $user = User::find($request->id_user);
+        $data = ['message' => 'El usuario ' . $user->username . ' no puede apostar, porque no tiene dinero.'];
 
-        DB::transaction(function () use ($request, &$user) {
+        if ($user->cash > 0) {
+            // begin a transaction
+            //DB::beginTransaction();
+
             // guarda la apuesta
             $bet = new BET();
-            $bet->id_user = $request->id_user;
-            $bet->bet = $request->bet;
-            $bet->color = $request->color;
+            $bet->id_user = $user->id;
+            $bet->bet = $this->generateBet($user->cash);
+            $bet->color = $this->randomcolor();
             $bet->round = $request->round;
+            $bet->result = 'NONE';
+            $bet->earned_money = 0;
+            $bet->status = 1;
             $bet->save();
 
             // descuenta el dinero apostado
-            $user = $bet->user;
-            $user->update([
-                'cash' => $user->cash - $bet->bet
-            ]);
-        });
+            $user->cash -= $bet->bet;
+            $user->update();
 
-        return response()->json('La apuesta del usuario ' . optional($user)->username . ', se guardo correctamente.');
+            // commit changes
+            //DB::commit();
+
+            $data = [
+                'cash' => $user->cash,
+                'bet' => $bet->bet,
+                'color' => $bet->color
+            ];
+        }
+
+        return response()->json($data);
     }
 
     /**
@@ -50,11 +64,19 @@ class CasinoController extends Controller
      */
     public function spinWheel(Request $request, string $round)
     {
+        // obtiene un color aleatorio
+        $color = $this->randomcolor();
+
+
+        // actuliza el color de la ronda
         BET::where('round', $round)
             ->update([
-                'result' => $request->color
+                'result' => $color
             ]);
-        return response()->json('El resultado de la ruleta se actualizo correctamente.');
+        
+        return response()->json([
+            'color' => $color
+        ]);
     }
 
     /**
@@ -62,25 +84,50 @@ class CasinoController extends Controller
      */
     public function endRound(Request $request, string $round)
     {
-        $user = null;
+        // actualiza la apuesta
+        $bet = BET::where('id_user', $request->id_user)
+                ->where('round', $round)
+                ->first();
 
-        DB::transaction(function () use ($request, $round, &$user) {
-            // actualiza la apuesta
-            $bet = BET::where('id_user', $request->id_user)
-                    ->where('round', $round)
-                    ->first();
+        $bet->earned_money = $this->payBet($bet->color, $bet->result, $bet->bet);
+        $bet->status = 0;
+        $bet->update();
 
-            $bet->earned_money = $request->bet;
-            $bet->status = 0;
-            $bet->update();
+        // se añade el dinero obtenido
+        $user = $bet->user;
+        $user->update([
+            'cash' => $user->cash + $bet->earned_money
+        ]);
 
-            // se añade el dinero obtenido
-            $user = $bet->user;
-            $user->update([
-                'cash' => $user->cash + $bet->earned_money
-            ]);
-        });
+        return response()->json([
+            'cash' => $user->cash
+        ]);
+    }
 
-        return response()->json('La apuesta del usuario ' . optional($user)->username . ', se actualizo correctamente.');
+    private function generateBet(int $cash) {
+        return ($cash > 1000) ? round($cash * (rand(8, 15) / 100)) : $cash;
+    }
+
+    private function randomColor() {
+        $probabilityColors = [
+            'VERDE' => 0.02,
+            'ROJO' => 0.49,
+            'NEGRO' => 0.49
+        ];
+
+        $number = round(mt_rand() / mt_getrandmax(), 2);
+        $acumulativeProbability = 0;
+
+        foreach ($probabilityColors as $color => $probability) {
+            $acumulativeProbability += $probability;
+
+            if ($number <= $acumulativeProbability) {
+                return $color;
+            }
+        }
+    }
+
+    private function payBet(string $color, string $result, int $bet) {
+        return $bet * ($color == $result ? ($result === 'VERDE' ? 15 : 2) : 0);
     }
 }
